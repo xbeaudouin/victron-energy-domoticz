@@ -4,8 +4,7 @@ Victron Energy MPPT plugin
 Author: Xavier Beaudouin
 Requirements: 
     1. multiplus + GX
-    2. modbus over TCP adapter like PW21
-    3. pymodbus AND pymodbusTCP
+    2. pymodbus AND pymodbusTCP
 """
 """
 <plugin key="VictronEnergy_GX_MPPT" name="Victron Energy MPPT over GX + Modbus" author="Xavier Beaudouin" version="0.0.1" externallink="https://github.com/xbeaudouin/victron-energy-domoticz/mppt">
@@ -148,7 +147,8 @@ class BasePlugin:
             Options = { "Custom": "1;W" }
             Domoticz.Device(Name="Power",        Unit=3, TypeName="Custom", Used=0, Options=Options).Create()
         if 4 not in Devices:
-            Domoticz.Device(Name="Total Energy", Unit=4,Type=0xfa, Subtype=0x01, Used=0).Create()
+            #Domoticz.Device(Name="Total Energy", Unit=4, Type=0xfa, Subtype=0x01, Used=0).Create()
+            Domoticz.Device(Name="Total Energy", Unit=4, Type=243, Subtype=29, Used=0).Create()
 
         return
 
@@ -250,7 +250,8 @@ class BasePlugin:
 
 
         # Do insert data on counters 
-        Devices[4].Update(1, sValue=total_e+";0;0;0;"+power+";0")
+        #Devices[4].Update(1, sValue=total_e+";0;0;0;"+power+";0")
+        Devices[4].Update(1, sValue=power+";"+total_e)
 
 
 global _plugin
