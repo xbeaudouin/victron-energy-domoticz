@@ -63,17 +63,23 @@ To add the MPPT plugin add the following :
 MPPT Setup 
 ![](screenshots/mppt-setup.png)
 
+
 MPPT Devices
 ![](screenshots/mppt-devices.png)
+
 
 MPPT Voltage
 ![](screenshots/mppt-voltage.png)
 
+
 MPPT Current
 ![](screenshots/mppt-current.png)
+
 
 MPPT Power
 ![](screenshots/mppt-power.png)
 
+
 MPPT kWh
 ![](screenshots/mppt-kWh.png)
+
