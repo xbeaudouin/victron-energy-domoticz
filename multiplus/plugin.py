@@ -397,14 +397,10 @@ class BasePlugin:
         except:
             Domoticz.Error("Error connecting to TCP/Interface on address : "+self.IPaddress+":"+str(self.IPPort))
             # Set value to 0 -> Error on all devices
-            Devices[1].Update(1, "0")
-            Devices[2].Update(1, "0")
-            Devices[3].Update(1, "0")
-            Devices[4].Update(1, "0")
-            Devices[5].Update(1, "0")
-            Devices[6].Update(1, "0")
-            Devices[7].Update(1, "0")
-            Devices[8].Update(1, "0")
+            Devices[20].Update(1, "0")
+            Devices[21].Update(1, "0")
+            Devices[22].Update(1, "0")
+            Devices[23].Update(1, "0")
 
         # Battery Voltage
         data = battery.read_holding_registers(259, 1)
@@ -470,6 +466,81 @@ class BasePlugin:
         Domoticz.Debug(" = {}".format(value))
         Devices[23].Update(1, str(value))
 
+        # Victron devices
+        Domoticz.Debug("Multiplus Interface : IP="+self.IPAddress +", Port="+str(self.IPPort)+" ID="+str(self.MBAddr))
+        try:
+            victron = ModbusClient(host=self.IPAddress, port=self.IPPort, unit_id=self.MBAddr, auto_open=True, auto_close=True, timeout=2)
+        except:
+            Domoticz.Error("Error connecting to TCP/Interface on address : "+self.IPaddress+":"+str(self.IPPort))
+            # Set value to 0 -> Error on all devices
+            Devices[30].Update(1, "0")
+            Devices[31].Update(1, "0")
+            Devices[32].Update(1, "0")
+            Devices[33].Update(1, "0")
+
+        # Grid Power L1
+        data = victron.read_holding_registers(820, 1)
+        Domoticz.Debug("Data from register 820: "+str(data))
+        # Unsigned 16
+        decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Big)
+        # Value
+        value = decoder.decode_16bit_int()
+        # Scale factor / 100.0
+        ##value = round (value / 100.0, 3)
+        Domoticz.Debug("Value after conversion : "+str(value))
+        Domoticz.Debug("-> Calculating average")
+        self.gridpower.update(value)
+        value = self.gridpower.get()
+        Domoticz.Debug(" = {}".format(value))
+        Devices[30].Update(1, str(value))
+
+        # Consumption L1
+        data = victron.read_holding_registers(817, 1)
+        Domoticz.Debug("Data from register 817: "+str(data))
+        # Unsigned 16
+        decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Big)
+        # Value
+        value = decoder.decode_16bit_int()
+        # Scale factor / 100.0
+        #value = round (value / 100.0, 3)
+        Domoticz.Debug("Value after conversion : "+str(value))
+        Domoticz.Debug("-> Calculating average")
+        self.conso.update(value)
+        value = self.conso.get()
+        Domoticz.Debug(" = {}".format(value))
+        Devices[31].Update(1, str(value))
+
+        # PV on Output
+        data = victron.read_holding_registers(808, 1)
+        Domoticz.Debug("Data from register 808: "+str(data))
+        # Unsigned 16
+        decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Big)
+        # Value
+        value = decoder.decode_16bit_int()
+        # Scale factor / 100.0
+        #value = round (value / 100.0, 3)
+        Domoticz.Debug("Value after conversion : "+str(value))
+        Domoticz.Debug("-> Calculating average")
+        self.pv.update(value)
+        value = self.pv.get()
+        Domoticz.Debug(" = {}".format(value))
+        Devices[32].Update(1, str(value))
+
+        # Battery Power
+        data = victron.read_holding_registers(842, 1)
+        Domoticz.Debug("Data from register 262: "+str(data))
+        # Unsigned 16
+        decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Big)
+        # Value
+        value = decoder.decode_16bit_int()
+        # Scale factor / 10.0
+        ##value = round (value / 10.0, 3)
+        Domoticz.Debug("Value after conversion : "+str(value))
+        Domoticz.Debug("-> Calculating average")
+        self.batteryPower.update(value)
+        value = self.batteryPower.get()
+        Domoticz.Debug(" = {}".format(value))
+        Devices[33].Update(1, str(value))
 
 global _plugin
 _plugin = BasePlugin()
