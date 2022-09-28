@@ -192,8 +192,8 @@ class BasePlugin:
         if 8 not in Devices:
             Options = { "Custom": "1;Hz" }
             Domoticz.Device(Name="Frequency OUT L1",    Unit=8,  TypeName="Custom", Used=0, Options=Options).Create()
-        #if 9 not in Devices:
-        #   Grid lost Alarm
+        if 9 not in Devices:
+            Domoticz.Device(Name="Grid Lost",           Unit=9,  TypeName="Alert", Used=0).Create()
         
         # Battery
         if 20 not in Devices:
@@ -260,6 +260,7 @@ class BasePlugin:
             Devices[6].Update(1, "0")
             Devices[7].Update(1, "0")
             Devices[8].Update(1, "0")
+            Devices[9].Update(1, "0")
 
         # Ac In Voltage
         data = client.read_holding_registers(3, 1)
@@ -389,6 +390,17 @@ class BasePlugin:
         Domoticz.Debug(" = {}".format(value))
         Devices[8].Update(1, str(value))
 
+        # Grid lost
+        data = client.read_holding_registers(64, 1)
+        Domoticz.Debug("Data from register 64: "+str(data))
+        decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Big)
+        value = decoder.decode_16bit_int()
+        if value == 0:
+            Devices[9].Update(nValue=value, sValue="Ok")
+        elif value == 2:
+            Devices[9].Update(nValue=value, sValue="Alert - Grid Lost")
+        else:
+            Devices[9].Update(nValue=3,     sValue="Unknown state ?")
 
         # Multiplus devices
         Domoticz.Debug("Multiplus Interface : IP="+self.IPAddress +", Port="+str(self.IPPort)+" ID="+str(self.BattAddr))
