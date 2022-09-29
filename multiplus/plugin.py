@@ -194,30 +194,32 @@ class BasePlugin:
             Domoticz.Device(Name="Frequency OUT L1",    Unit=8,  TypeName="Custom", Used=0, Options=Options).Create()
         if 9 not in Devices:
             Domoticz.Device(Name="Grid Lost",           Unit=9,  TypeName="Alert", Used=0).Create()
+        if 10 not in Devices:
+            Domoticz.Device(Name="VE.Bus State",        Unit=10, TypeName="Text", Used=0).Create()
         
         # Battery
         if 20 not in Devices:
             Domoticz.Device(Name="Battery Voltage",     Unit=20, TypeName="Voltage", Used=0).Create()
         if 21 not in Devices:
-            Domoticz.Device(Name="Battery Current",     Unit=21,  TypeName="Current (Single)", Used=0).Create()
+            Domoticz.Device(Name="Battery Current",     Unit=21, TypeName="Current (Single)", Used=0).Create()
         if 22 not in Devices:
-            Domoticz.Device(Name="Battery SOC",         Unit=22,  TypeName="Percentage", Used=0).Create()
+            Domoticz.Device(Name="Battery SOC",         Unit=22, TypeName="Percentage", Used=0).Create()
         if 23 not in Devices:
-            Domoticz.Device(Name="Battery Temperature", Unit=23,  TypeName="Temperature", Used=0).Create()
+            Domoticz.Device(Name="Battery Temperature", Unit=23, TypeName="Temperature", Used=0).Create()
 
         # Victron
         if 30 not in Devices:
             Options = { "Custom": "1;W" }
-            Domoticz.Device(Name="Grid Power L1",       Unit=30,  TypeName="Custom", Used=0, Options=Options).Create()
+            Domoticz.Device(Name="Grid Power L1",       Unit=30, TypeName="Custom", Used=0, Options=Options).Create()
         if 31 not in Devices:
             Options = { "Custom": "1;W" }
-            Domoticz.Device(Name="Consumption L1",      Unit=31,  TypeName="Custom", Used=0, Options=Options).Create()
+            Domoticz.Device(Name="Consumption L1",      Unit=31, TypeName="Custom", Used=0, Options=Options).Create()
         if 32 not in Devices:
             Options = { "Custom": "1;W" }
-            Domoticz.Device(Name="PV on Output",        Unit=32,  TypeName="Custom", Used=0, Options=Options).Create()
+            Domoticz.Device(Name="PV on Output",        Unit=32, TypeName="Custom", Used=0, Options=Options).Create()
         if 33 not in Devices:
             Options = { "Custom": "1;W" }
-            Domoticz.Device(Name="Battery Power",       Unit=33,  TypeName="Custom", Used=0, Options=Options).Create()
+            Domoticz.Device(Name="Battery Power",       Unit=33, TypeName="Custom", Used=0, Options=Options).Create()
         #if 34 not in Devices:
         # ESS Batterylife
 
@@ -261,6 +263,7 @@ class BasePlugin:
             Devices[7].Update(1, "0")
             Devices[8].Update(1, "0")
             Devices[9].Update(1, "0")
+            Devices[10].Update(1, "0")
 
         # Ac In Voltage
         data = client.read_holding_registers(3, 1)
@@ -401,6 +404,39 @@ class BasePlugin:
             Devices[9].Update(nValue=value, sValue="Alert - Grid Lost")
         else:
             Devices[9].Update(nValue=3,     sValue="Unknown state ?")
+
+        # VE.Bus state
+        data = client.read_holding_registers(31, 1)
+        Domoticz.Debug("Data from register 31: "+str(data))
+        decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Big)
+        value = decoder.decode_16bit_int()
+        vebus = 'Unknown?'
+        if value == 0: 
+            vebus = 'Off'
+        elif value == 1:
+            vebus = 'Low Power'
+        elif value == 2:
+            vebus = 'Fault'
+        elif value == 3:
+            vebus = 'Bulk'
+        elif value == 4:
+            vebus = 'Absorption'
+        elif value == 5:
+            vebus = 'Float'
+        elif value == 6:
+            vebus = 'Storage'
+        elif value == 7:
+            vebus = 'Equalize'
+        elif value == 8:
+            vebus = 'Passthru'
+        elif value == 9:
+            vebus = 'Inverting'
+        elif value == 10:
+            vebus = 'Power assist'
+        elif value == 11:
+            vebus = 'Power supply'
+        Devices[10].Update(1, str(value)+": "+vebus)
+                
 
         # Multiplus devices
         Domoticz.Debug("Multiplus Interface : IP="+self.IPAddress +", Port="+str(self.IPPort)+" ID="+str(self.BattAddr))
