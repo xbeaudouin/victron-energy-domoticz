@@ -173,55 +173,55 @@ class BasePlugin:
         # TODO: refactor this.
         # Multiplus Devices
         if 1 not in Devices:
-            Domoticz.Device(Name="Voltage IN L1",       Unit=1,  TypeName="Voltage", Used=0).Create()
+            Domoticz.Device(Name="Voltage IN L1",          Unit=1,  TypeName="Voltage", Used=0).Create()
         if 2 not in Devices:
-            Domoticz.Device(Name="Current IN L1",       Unit=2,  TypeName="Current (Single)", Used=0).Create()
+            Domoticz.Device(Name="Current IN L1",          Unit=2,  TypeName="Current (Single)", Used=0).Create()
         if 3 not in Devices:
             Options = { "Custom": "1;W" }
-            Domoticz.Device(Name="Power IN L1",         Unit=3,  TypeName="Custom", Used=0, Options=Options).Create()
+            Domoticz.Device(Name="Power IN L1",            Unit=3,  TypeName="Custom", Used=0, Options=Options).Create()
         if 4 not in Devices:
             Options = { "Custom": "1;Hz" }
-            Domoticz.Device(Name="Frequency IN L1",     Unit=4,  TypeName="Custom", Used=0, Options=Options).Create()
+            Domoticz.Device(Name="Frequency IN L1",        Unit=4,  TypeName="Custom", Used=0, Options=Options).Create()
         if 5 not in Devices:
-            Domoticz.Device(Name="Voltage OUT L1",      Unit=5,  TypeName="Voltage", Used=0).Create()
+            Domoticz.Device(Name="Voltage OUT L1",         Unit=5,  TypeName="Voltage", Used=0).Create()
         if 6 not in Devices:
-            Domoticz.Device(Name="Current OUT L1",      Unit=6,  TypeName="Current (Single)", Used=0).Create()
+            Domoticz.Device(Name="Current OUT L1",         Unit=6,  TypeName="Current (Single)", Used=0).Create()
         if 7 not in Devices:
             Options = { "Custom": "1;W" }
-            Domoticz.Device(Name="Power OUT L1",        Unit=7,  TypeName="Custom", Used=0, Options=Options).Create()
+            Domoticz.Device(Name="Power OUT L1",           Unit=7,  TypeName="Custom", Used=0, Options=Options).Create()
         if 8 not in Devices:
             Options = { "Custom": "1;Hz" }
-            Domoticz.Device(Name="Frequency OUT L1",    Unit=8,  TypeName="Custom", Used=0, Options=Options).Create()
+            Domoticz.Device(Name="Frequency OUT L1",       Unit=8,  TypeName="Custom", Used=0, Options=Options).Create()
         if 9 not in Devices:
-            Domoticz.Device(Name="Grid Lost",           Unit=9,  TypeName="Alert", Used=0).Create()
+            Domoticz.Device(Name="Grid Lost",              Unit=9,  TypeName="Alert", Used=0).Create()
         if 10 not in Devices:
-            Domoticz.Device(Name="VE.Bus State",        Unit=10, TypeName="Text", Used=0).Create()
+            Domoticz.Device(Name="VE.Bus State",           Unit=10, TypeName="Text", Used=0).Create()
         
         # Battery
         if 20 not in Devices:
-            Domoticz.Device(Name="Battery Voltage",     Unit=20, TypeName="Voltage", Used=0).Create()
+            Domoticz.Device(Name="Battery Voltage",        Unit=20, TypeName="Voltage", Used=0).Create()
         if 21 not in Devices:
-            Domoticz.Device(Name="Battery Current",     Unit=21, TypeName="Current (Single)", Used=0).Create()
+            Domoticz.Device(Name="Battery Current",        Unit=21, TypeName="Current (Single)", Used=0).Create()
         if 22 not in Devices:
-            Domoticz.Device(Name="Battery SOC",         Unit=22, TypeName="Percentage", Used=0).Create()
+            Domoticz.Device(Name="Battery SOC",            Unit=22, TypeName="Percentage", Used=0).Create()
         if 23 not in Devices:
-            Domoticz.Device(Name="Battery Temperature", Unit=23, TypeName="Temperature", Used=0).Create()
+            Domoticz.Device(Name="Battery Temperature",    Unit=23, TypeName="Temperature", Used=0).Create()
 
         # Victron
         if 30 not in Devices:
             Options = { "Custom": "1;W" }
-            Domoticz.Device(Name="Grid Power L1",       Unit=30, TypeName="Custom", Used=0, Options=Options).Create()
+            Domoticz.Device(Name="Grid Power L1",          Unit=30, TypeName="Custom", Used=0, Options=Options).Create()
         if 31 not in Devices:
             Options = { "Custom": "1;W" }
-            Domoticz.Device(Name="Consumption L1",      Unit=31, TypeName="Custom", Used=0, Options=Options).Create()
+            Domoticz.Device(Name="Consumption L1",         Unit=31, TypeName="Custom", Used=0, Options=Options).Create()
         if 32 not in Devices:
             Options = { "Custom": "1;W" }
-            Domoticz.Device(Name="PV on Output",        Unit=32, TypeName="Custom", Used=0, Options=Options).Create()
+            Domoticz.Device(Name="PV on Output",           Unit=32, TypeName="Custom", Used=0, Options=Options).Create()
         if 33 not in Devices:
             Options = { "Custom": "1;W" }
-            Domoticz.Device(Name="Battery Power",       Unit=33, TypeName="Custom", Used=0, Options=Options).Create()
-        #if 34 not in Devices:
-        # ESS Batterylife
+            Domoticz.Device(Name="Battery Power",          Unit=33, TypeName="Custom", Used=0, Options=Options).Create()
+        if 34 not in Devices:
+            Domoticz.Device(Name="ESS Battery Life State", Unit=34, TypeName="Text", Used=0).Create()
 
         return
 
@@ -525,6 +525,7 @@ class BasePlugin:
             Devices[31].Update(1, "0")
             Devices[32].Update(1, "0")
             Devices[33].Update(1, "0")
+            Devices[34].Update(1, "0")
 
         # Grid Power L1
         data = victron.read_holding_registers(820, 1)
@@ -589,6 +590,39 @@ class BasePlugin:
         value = self.batteryPower.get()
         Domoticz.Debug(" = {}".format(value))
         Devices[33].Update(1, str(value))
+
+        # ESS Battery State
+        data = victron.read_holding_registers(2900, 1)
+        Domoticz.Debug("Data from register 2900: "+str(data))
+        # Unsigned 16
+        decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Big)
+        # Value
+        value = decoder.decode_16bit_int()
+        batterystate = "Unknown?"
+        if value == 0:
+            batterystate = "Unused, Battery Life Disabled"
+        elif value == 1:
+            batterystate = "Restarted"
+        elif value == 2:
+            batterystate = "Self-compsumption"
+        elif value == 3:
+            ratterystate = "Self-compsumption, SoC exceeds 85%"
+        elif value == 4:
+            batterystate = "Self-compsumption, SoC at 100%"
+        elif value == 5:
+            batterystate = "Discharge disabled"
+        elif value == 6:
+            batterystate = "Force Charge"
+        elif value == 7:
+            batterystate = "Sustain"
+        elif value == 9:
+            batterystate = "Keep batteries charged"
+        elif value == 10:
+            batterystate = "Battery Life disabled"
+        elif value == 11:
+            batterystate = "Battery Life disabled (low SoC)"
+        Devices[34].Update(1, str(value)+": "+batterystate)
+        # TODO: add a device to say on battery yes/no
 
 global _plugin
 _plugin = BasePlugin()
