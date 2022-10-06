@@ -264,7 +264,6 @@ class BasePlugin:
             Devices[8].Update(1, "0")
             Devices[9].Update(1, "0")
             Devices[10].Update(1, "0")
-            Devices[11].Update(1, "0")
 
         # Ac In Voltage
         data = client.read_holding_registers(3, 1)
