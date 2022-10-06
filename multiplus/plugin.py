@@ -264,6 +264,7 @@ class BasePlugin:
             Devices[8].Update(1, "0")
             Devices[9].Update(1, "0")
             Devices[10].Update(1, "0")
+            Devices[11].Update(1, "0")
 
         # Ac In Voltage
         data = client.read_holding_registers(3, 1)
@@ -599,16 +600,20 @@ class BasePlugin:
         # Value
         value = decoder.decode_16bit_int()
         batterystate = "Unknown?"
+        onbattery = 0
         if value == 0:
             batterystate = "Unused, Battery Life Disabled"
         elif value == 1:
             batterystate = "Restarted"
         elif value == 2:
             batterystate = "Self-compsumption"
+            onbattery = 1
         elif value == 3:
-            ratterystate = "Self-compsumption, SoC exceeds 85%"
+            batterystate = "Self-compsumption, SoC exceeds 85%"
+            onbattery = 1
         elif value == 4:
             batterystate = "Self-compsumption, SoC at 100%"
+            onbattery = 1
         elif value == 5:
             batterystate = "Discharge disabled"
         elif value == 6:
@@ -623,6 +628,7 @@ class BasePlugin:
             batterystate = "Battery Life disabled (low SoC)"
         Devices[34].Update(1, str(value)+": "+batterystate)
         # TODO: add a device to say on battery yes/no
+        # use the "onbatteryy" variable
 
 global _plugin
 _plugin = BasePlugin()
