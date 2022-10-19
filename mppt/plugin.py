@@ -7,7 +7,7 @@ Requirements:
     2. pymodbus AND pymodbusTCP
 """
 """
-<plugin key="VictronEnergy_GX_MPPT" name="Victron Energy MPPT over GX + Modbus" author="Xavier Beaudouin" version="0.0.1" externallink="https://github.com/xbeaudouin/victron-energy-domoticz/mppt">
+<plugin key="VictronEnergy_GX_MPPT" name="Victron Energy MPPT over GX + Modbus" author="Xavier Beaudouin" version="0.0.2" externallink="https://github.com/xbeaudouin/victron-energy-domoticz/mppt">
     <params>
         <param field="Address" label="GX IP Address" width="150px" required="true" />
         <param field="Port" label="GX Modbus Port Number" width="100px" required="true" default="502" />
@@ -31,6 +31,7 @@ sys.path.append('/usr/local/lib/python3.6/dist-packages')
 sys.path.append('/usr/local/lib/python3.7/dist-packages')
 sys.path.append('/usr/local/lib/python3.8/dist-packages')
 sys.path.append('/usr/local/lib/python3.9/dist-packages')
+sys.path.append('/usr/local/lib/python3.10/dist-packages')
 
 import pymodbus
 
@@ -98,7 +99,6 @@ class Maximum:
 
 # Plugin itself
 class BasePlugin:
-    #enabled = False
     def __init__(self):
         # Voltage for last 5 minutes
         self.voltage=Average()
@@ -138,7 +138,6 @@ class BasePlugin:
         Domoticz.Debug("Query IP " + self.IPAddress + ":" + str(self.IPPort) +" on device : "+str(self.MBAddr))
 
         # Create the devices if they does not exists
-        # TODO: refactor this.
         if 1 not in Devices:
             Domoticz.Device(Name="Voltage",      Unit=1, TypeName="Voltage", Used=0).Create()
         if 2 not in Devices:
@@ -147,7 +146,6 @@ class BasePlugin:
             Options = { "Custom": "1;W" }
             Domoticz.Device(Name="Power",        Unit=3, TypeName="Custom", Used=0, Options=Options).Create()
         if 4 not in Devices:
-            #Domoticz.Device(Name="Total Energy", Unit=4, Type=0xfa, Subtype=0x01, Used=0).Create()
             Domoticz.Device(Name="Total Energy", Unit=4, Type=243, Subtype=29, Used=0).Create()
 
         return
@@ -155,22 +153,6 @@ class BasePlugin:
 
     def onStop(self):
         Domoticz.Debugging(0)
-
-    def onConnect(self, Connection, Status, Description):
-        Domoticz.Log("onConnect called")
-        return
-
-    def onMessage(self, Connection, Data):
-        Domoticz.Log("onMessage called")
-
-    def onCommand(self, Unit, Command, Level, Hue):
-        Domoticz.Log("onCommand called for Unit " + str(Unit) + ": Parameter '" + str(Command) + "', Level: " + str(Level))
-
-    def onNotification(self, Name, Subject, Text, Status, Priority, Sound, ImageFile):
-        Domoticz.Log("Notification: " + Name + "," + Subject + "," + Text + "," + Status + "," + str(Priority) + "," + Sound + "," + ImageFile)
-
-    def onDisconnect(self, Connection):
-        Domoticz.Log("onDisconnect called")
 
     def onHeartbeat(self):
         Domoticz.Debug(" Interface : IP="+self.IPAddress +", Port="+str(self.IPPort)+" ID="+str(self.MBAddr))
@@ -184,73 +166,30 @@ class BasePlugin:
             Devices[3].Update(1, "0")
             Devices[4].Update(1, "0")
 
-        # TODO: catch errors
         total_e = "0"
         power = "0"
 
         # Voltage
-        data = client.read_holding_registers(776, 1)
-        Domoticz.Debug("Data from register 776: "+str(data))
-        # Unsigned 16
-        decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Big)
-        # Value
-        value = decoder.decode_16bit_int()
-        # Scale factor / 100
-        value = round (value / 100.0, 3)
-        Domoticz.Debug("Value after conversion : "+str(value))
-        Domoticz.Debug("-> Calculating average")
+        value = round (getmodbus16(776, client) / 100.0, 3)
         self.voltage.update(value)
         value = self.voltage.get()
-        Domoticz.Debug(" = {}".format(value))
         Devices[1].Update(1, str(value))
 
         # Current
-        data = client.read_holding_registers(777, 1)
-        Domoticz.Debug("Data from register 777: "+str(data))
-        # Unsigned 16
-        decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Big)
-        # Value
-        value = decoder.decode_16bit_int()
-        # Scale factor / 10.0
-        value = round (value / 10.0, 3)
-        Domoticz.Debug("Value after conversion : "+str(value))
-        Domoticz.Debug("-> Calculating average")
+        value = round (getmodbus16(777,client) / 10.0, 3)
         self.current.update(value)
         value = self.current.get()
-        Domoticz.Debug(" = {}".format(value))
         Devices[2].Update(1, str(value))
 
         # Power
-        data = client.read_holding_registers(789, 1)
-        Domoticz.Debug("Data from register 789: "+str(data))
-        # Unsigned 16
-        decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Big)
-        # Value
-        value = decoder.decode_16bit_int()
-        # Scale factor / 10.0
-        value = round (value / 10.0, 3)
-        Domoticz.Debug("Value after conversion : "+str(value))
-        Domoticz.Debug("-> Calculating average")
+        value = round (getmodbus16(789, client) / 10.0, 3)
         self.power.update(value)
         value = self.power.get()
-        Domoticz.Debug(" = {}".format(value))
         Devices[3].Update(1, str(value))
         power = str(value)
 
         # Total Energy
-        data = client.read_holding_registers(790, 1)
-        Domoticz.Debug("Data from register 790: "+str(data))
-        # Unsigned 32 
-        decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Big)
-        # Value
-        value = decoder.decode_16bit_int()
-        Domoticz.Debug(" = {}".format(value))
-        # Scale * 100 (to have Wh)
-        total_e = str(value*100)
-
-
-        # Do insert data on counters 
-        #Devices[4].Update(1, sValue=total_e+";0;0;0;"+power+";0")
+        total_e = str(getmodbus16(790,client)*100)
         Devices[4].Update(1, sValue=power+";"+total_e)
 
 
@@ -265,31 +204,11 @@ def onStop():
     global _plugin
     _plugin.onStop()
 
-def onConnect(Connection, Status, Description):
-    global _plugin
-    _plugin.onConnect(Connection, Status, Description)
-
-def onMessage(Connection, Data):
-    global _plugin
-    _plugin.onMessage(Connection, Data)
-
-def onCommand(Unit, Command, Level, Hue):
-    global _plugin
-    _plugin.onCommand(Unit, Command, Level, Hue)
-
-def onNotification(Name, Subject, Text, Status, Priority, Sound, ImageFile):
-    global _plugin
-    _plugin.onNotification(Name, Subject, Text, Status, Priority, Sound, ImageFile)
-
-def onDisconnect(Connection):
-    global _plugin
-    _plugin.onDisconnect(Connection)
-
 def onHeartbeat():
     global _plugin
     _plugin.onHeartbeat()
 
-    # Generic helper functions
+# Generic helper functions
 def DumpConfigToLog():
     for x in Parameters:
         if Parameters[x] != "":
@@ -303,3 +222,24 @@ def DumpConfigToLog():
         Domoticz.Debug("Device sValue:   '" + Devices[x].sValue + "'")
         Domoticz.Debug("Device LastLevel: " + str(Devices[x].LastLevel))
     return
+
+# get Modbug 16 bits values
+def getmodbus16(register, client):
+    value = 0
+    try:
+        data = client.read_holding_registers(register, 1)
+        Domoticz.Debug("Data from register "+str(register)+": "+str(data))
+        decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Big)
+        value = decoder.decode_16bit_int()
+    except:
+        Domoticz.Error("Error getting data from "+str(register) + ", try 1")
+        try:
+            data = client.read_holding_registers(register, 1)
+            Domoticz.Debug("Data from register "+str(register)+": "+str(data))
+            decoder = BinaryPayloadDecoder.fromRegisters(data, byteorder=Endian.Big, wordorder=Endian.Big)
+            value = decoder.decode_16bit_int()
+        except:
+            Domoticz.Error("Error getting data from "+str(register) + ", try 2")
+
+    return value
+
